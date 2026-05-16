@@ -1,6 +1,6 @@
 api_platform:
-    title: Recipi API
-    description: API for the Recipi meal planning app
+    title: ReciPi API
+    description: API for the ReciPi meal planning app
     version: 0.1.0
     defaults:
         stateless: true
