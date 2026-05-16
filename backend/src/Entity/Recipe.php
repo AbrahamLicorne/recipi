@@ -6,9 +6,16 @@ namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use App\ApiResource\RecipeInput;
 use App\Repository\RecipeRepository;
+use App\State\RecipeInputProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,9 +26,21 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'recipe')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
+    operations: [
+        new GetCollection(paginationItemsPerPage: 30),
+        new Get(),
+        new Post(
+            input: RecipeInput::class,
+            processor: RecipeInputProcessor::class,
+            validationContext: ['groups' => ['Default', 'recipe:create']],
+        ),
+        new Patch(
+            input: RecipeInput::class,
+            processor: RecipeInputProcessor::class,
+        ),
+        new Delete(),
+    ],
     normalizationContext: ['groups' => ['recipe:read']],
-    denormalizationContext: ['groups' => ['recipe:write']],
-    paginationItemsPerPage: 30,
 )]
 #[ApiFilter(SearchFilter::class, properties: ['name' => 'partial', 'tags.name' => 'exact'])]
 #[ApiFilter(OrderFilter::class, properties: ['name', 'createdAt'])]
