@@ -4,52 +4,80 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Repository\RecipeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: RecipeRepository::class)]
 #[ORM\Table(name: 'recipe')]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    normalizationContext: ['groups' => ['recipe:read']],
+    denormalizationContext: ['groups' => ['recipe:write']],
+    paginationItemsPerPage: 30,
+)]
+#[ApiFilter(SearchFilter::class, properties: ['name' => 'partial', 'tags.name' => 'exact'])]
+#[ApiFilter(OrderFilter::class, properties: ['name', 'createdAt'])]
 class Recipe
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['recipe:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, unique: true)]
+    #[Groups(['recipe:read', 'recipe:write', 'planned_meal:read'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private string $name;
 
     #[ORM\Column(type: 'text')]
+    #[Groups(['recipe:read', 'recipe:write'])]
     private string $instructions = '';
 
     #[ORM\Column(type: 'smallint', options: ['default' => 2])]
+    #[Groups(['recipe:read', 'recipe:write', 'planned_meal:read'])]
+    #[Assert\Positive]
     private int $servings = 2;
 
     #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Groups(['recipe:read', 'recipe:write'])]
+    #[Assert\PositiveOrZero]
     private ?int $prepTimeMin = null;
 
     #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Groups(['recipe:read', 'recipe:write'])]
+    #[Assert\PositiveOrZero]
     private ?int $cookTimeMin = null;
 
     #[ORM\Column(type: 'datetimetz_immutable')]
+    #[Groups(['recipe:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(type: 'datetimetz_immutable')]
+    #[Groups(['recipe:read'])]
     private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, RecipeIngredient> */
     #[ORM\OneToMany(targetEntity: RecipeIngredient::class, mappedBy: 'recipe', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['recipe:read'])]
     private Collection $recipeIngredients;
 
     /** @var Collection<int, Tag> */
     #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'recipes')]
     #[ORM\JoinTable(name: 'recipe_tag')]
+    #[Groups(['recipe:read', 'recipe:write'])]
     private Collection $tags;
 
-    public function __construct(string $name)
+    public function __construct(string $name = '')
     {
         $this->name = $name;
         $this->recipeIngredients = new ArrayCollection();
